@@ -4,40 +4,36 @@ import (
 	"fmt"
 	"time"
 
+	storage "github.com/future-jim/gohost-storage"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
 )
 
-const bytesToMB = 1048576
-const secondsInHour = 3600
-const secondsInDay = 86400
-
-type HostUpTime struct {
-	Days    uint64
-	Hours   uint64
-	Minutes uint64
-}
-
-type AverageLoad struct {
-	One     float64
-	Five    float64
-	Fifteen float64
-}
-
 func main() {
+	var metric Metrics
+	storage.NewPostgresStore()
 
 	for {
+
 		time.Sleep(1 * time.Second)
-		fmt.Println(getMemoryPercentUsed())
-		fmt.Println(getHostUpTime())
-		fmt.Println(getAverageLoad())
+		PMU := getMemoryPercentUsed()
+		AL := getAverageLoad()
+		HUT := getHostUpTime()
+
+		metric.AL = AL
+		metric.PMU = PMU
+		metric.HUT = HUT
+		fmt.Println(metric)
+
 	}
 }
 
-func getMemoryPercentUsed() float64 {
+func getMemoryPercentUsed() PercentMemoryUsed {
 	v, _ := mem.VirtualMemory()
-	return v.UsedPercent
+	return PercentMemoryUsed{
+		PMU: v.UsedPercent,
+	}
 }
 func getHostUpTime() HostUpTime {
 	h, _ := host.Info()
