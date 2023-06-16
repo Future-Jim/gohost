@@ -1,7 +1,8 @@
 module github.com/future-jim/gohost
 
-replace github.com/future-jim/gohost/lib/storage => ../lib/storage
-replace github.com/future-jim/gohost/lib/types => ../lib/types
+//replace github.com/future-jim/gohost/lib/storage => ../lib/storage
+
+//replace github.com/future-jim/gohost/lib/types => ../lib/types
 
 go 1.20
 
@@ -13,7 +14,6 @@ require (
 )
 
 require (
-	github.com/future-jim/gohost/lib/types v1.0.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect

@@ -1,7 +1,5 @@
 module github.com/future-jim/gohost/lib/storage
 
-replace github.com/future-jim/gohost/lib/types => ../types
-
 go 1.20
 
 require (
