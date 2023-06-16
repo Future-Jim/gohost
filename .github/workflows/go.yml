@@ -25,7 +25,8 @@ jobs:
       uses: actions/checkout@v2
 
     - name: Build
-      run: go build -v ./gohost-mon
+      run: echo $PATH
+      #run: go build -v ./gohost-mon
 
     - name: Test
       run: go test -v ./...
