@@ -1,6 +1,10 @@
 package main
 
-import "github.com/future-jim/gohost/lib/metricstore"
+import (
+	"log"
+
+	"github.com/future-jim/gohost/lib/metricstore"
+)
 
 const measurementDelay = 1
 
