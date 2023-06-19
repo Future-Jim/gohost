@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/future-jim/gohost/lib/storage"
+	"github.com/future-jim/gohost/lib/metricstore"
 	"github.com/future-jim/gohost/lib/types"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/v3/host"
@@ -18,10 +18,10 @@ const secondsInDay = 86400
 
 type MetricAgent struct {
 	name  string
-	store storage.MetricStorage
+	store metricstore.MetricStorage
 }
 
-func NewMetricAgent(store storage.MetricStorage) *MetricAgent {
+func NewMetricAgent(store metricstore.MetricStorage) *MetricAgent {
 	return &MetricAgent{
 		store: store,
 	}
@@ -31,14 +31,13 @@ func (a *MetricAgent) Run() {
 	var metric types.Metrics
 	for {
 		time.Sleep(measurementDelay * time.Second)
-		PMU := GetMemoryPercentUsed()
-		AL := GetAverageLoad()
-		HUT := GetHostUpTime()
-		metric.AL = AL
-		metric.PMU = PMU
-		metric.HUT = HUT
+		metric.AL = GetAverageLoad()
+		metric.PMU = GetMemoryPercentUsed()
+		metric.HUT = GetHostUpTime()
 		a.store.AddEntry(&metric)
 		fmt.Println(metric)
+		result := a.store.GetEntry()
+		fmt.Println(result)
 	}
 }
 
