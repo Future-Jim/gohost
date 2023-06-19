@@ -8,7 +8,7 @@ import (
 	"github.com/future-jim/gohost/lib/types"
 )
 
-const measurementDelay = 60
+const measurementDelay = 1
 
 func main() {
 	var metric types.Metrics
