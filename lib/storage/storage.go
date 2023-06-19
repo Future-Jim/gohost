@@ -11,8 +11,7 @@ import (
 
 type MetricStorage interface {
 	createMetricTable() error
-	AddEntry() error
-	GetEntries() error
+	AddEntry(*types.Metrics) error
 }
 
 type PostgresStore struct {

@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"math"
+	"time"
 
 	"github.com/future-jim/gohost/lib/storage"
 	"github.com/future-jim/gohost/lib/types"
@@ -14,8 +16,30 @@ const bytesToMB = 1048576
 const secondsInHour = 3600
 const secondsInDay = 86400
 
-type Metrics struct {
+type MetricAgent struct {
+	name  string
 	store storage.MetricStorage
+}
+
+func NewMetricAgent(store storage.MetricStorage) *MetricAgent {
+	return &MetricAgent{
+		store: store,
+	}
+}
+
+func (a *MetricAgent) Run() {
+	var metric types.Metrics
+	for {
+		time.Sleep(measurementDelay * time.Second)
+		PMU := GetMemoryPercentUsed()
+		AL := GetAverageLoad()
+		HUT := GetHostUpTime()
+		metric.AL = AL
+		metric.PMU = PMU
+		metric.HUT = HUT
+		a.store.AddEntry(&metric)
+		fmt.Println(metric)
+	}
 }
 
 func GetMemoryPercentUsed() types.PercentMemoryUsed {
