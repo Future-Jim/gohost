@@ -3,6 +3,7 @@ package main
 import (
 	"math"
 
+	"github.com/future-jim/gohost/lib/storage"
 	"github.com/future-jim/gohost/lib/types"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/v3/host"
@@ -12,6 +13,10 @@ import (
 const bytesToMB = 1048576
 const secondsInHour = 3600
 const secondsInDay = 86400
+
+type Metrics struct {
+	store storage.MetricStorage
+}
 
 func GetMemoryPercentUsed() types.PercentMemoryUsed {
 	v, _ := mem.VirtualMemory()

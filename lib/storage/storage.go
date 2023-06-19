@@ -9,7 +9,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Storage interface {
+type MetricStorage interface {
+	createMetricTable() error
 	AddEntry() error
 	GetEntries() error
 }
@@ -35,11 +36,11 @@ func NewPostgresStore() (*PostgresStore, error) {
 }
 
 func (s *PostgresStore) Init() error {
-	return s.createAccountTable()
+	return s.createMetricTable()
 
 }
 
-func (s *PostgresStore) createAccountTable() error {
+func (s *PostgresStore) createMetricTable() error {
 	query := `create table if not exists metrics (
            id serial primary key,
            AverageLoad_1 decimal(3,2),
@@ -81,12 +82,12 @@ func (s *PostgresStore) AddEntry(metrics *types.Metrics) error {
 		metrics.PMU.PMU,
 		time.Now().UTC())
 
-	defer rows.Close()
-
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
+
+	defer rows.Close()
 
 	return nil
 }
