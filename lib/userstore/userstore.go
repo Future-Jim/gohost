@@ -15,6 +15,7 @@ type UserStorage interface {
 	GetAccounts() ([]*types.Account, error)
 	GetAccountByID(int) (*types.Account, error)
 	GetAccountByNumber(int) (*types.Account, error)
+	GetQuery() error
 }
 
 type PostgresStore struct {
@@ -54,6 +55,11 @@ func (s *PostgresStore) createAccountTable() error {
     )`
 	_, err := s.db.Exec(query)
 	return err
+}
+
+func (s *PostgresStore) GetQuery() error {
+	fmt.Println("hi")
+	return nil
 }
 
 func (s *PostgresStore) CreateAccount(acc *types.Account) error {

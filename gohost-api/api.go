@@ -16,23 +16,25 @@ import (
 
 type APIServer struct {
 	listenAddr string
-	store      userstore.UserStorage
+	apistore   userstore.UserStorage
 }
 
-func NewAPIServer(listenAddr string, store userstore.UserStorage) *APIServer {
+func NewAPIServer(listenAddr string,
+	apistore userstore.UserStorage) *APIServer {
 	return &APIServer{
 		listenAddr: listenAddr,
-		store:      store,
+		apistore:   apistore,
 	}
 }
 
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
+	log.Println("JSON API server running on port:", s.listenAddr)
 	router.HandleFunc("/login", makeHTTPHandleFunc(s.handleLogin))
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
-	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountByID), s.store))
-	log.Println("JSON API server running on port:", s.listenAddr)
-	router.HandleFunc("/transfer", makeHTTPHandleFunc(s.handleTransfer))
+	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountByID), s.apistore))
+	router.HandleFunc("/query", withJWTAuth(makeHTTPHandleFunc(s.getQuery), s.apistore))
+
 	http.ListenAndServe(s.listenAddr, router)
 
 }
@@ -47,7 +49,7 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	acc, err := s.store.GetAccountByNumber(int(req.Number))
+	acc, err := s.apistore.GetAccountByNumber(int(req.Number))
 	if err != nil {
 		return err //handle this as json
 	}
@@ -70,6 +72,21 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
 }
 
 // handles all types of requests related to account (GET, POST, DELETE etc)
+func (s *APIServer) handleQuery(w http.ResponseWriter, r *http.Request) error {
+	if r.Method == "GET" {
+		return s.getQuery(w, r)
+	}
+	return fmt.Errorf("method not allowed %s", r.Method)
+}
+
+func (s *APIServer) getQuery(w http.ResponseWriter, r *http.Request) error {
+	err := s.apistore.GetQuery()
+	if err != nil {
+		return err
+	}
+	return WriteJSON(w, http.StatusOK, "okay")
+}
+
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
 	if r.Method == "GET" {
 		return s.handleGetAccount(w, r)
@@ -94,7 +111,7 @@ func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request)
 			return err
 		}
 
-		account, err := s.store.GetAccountByID(id)
+		account, err := s.apistore.GetAccountByID(id)
 		if err != nil {
 			return err
 		}
@@ -108,7 +125,7 @@ func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *APIServer) handleGetAccount(w http.ResponseWriter, r *http.Request) error {
-	accounts, err := s.store.GetAccounts()
+	accounts, err := s.apistore.GetAccounts()
 	if err != nil {
 		return err
 	}
@@ -127,7 +144,7 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
-	if err := s.store.CreateAccount(account); err != nil {
+	if err := s.apistore.CreateAccount(account); err != nil {
 		return err
 	}
 
@@ -140,7 +157,7 @@ func (s *APIServer) handleDeleteAccount(w http.ResponseWriter, r *http.Request) 
 		return err
 	}
 
-	if err := s.store.DeleteAccount(id); err != nil {
+	if err := s.apistore.DeleteAccount(id); err != nil {
 		return err
 	}
 	return nil
@@ -176,7 +193,7 @@ func createJWT(account *types.Account) (string, error) {
 	}
 	secret := os.Getenv("JWT_SECRET")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
+	print(token)
 	return token.SignedString([]byte(secret))
 
 }
@@ -192,33 +209,38 @@ func withJWTAuth(handlerFunc http.HandlerFunc, s userstore.UserStorage) http.Han
 		tokenString := r.Header.Get("x-jwt-token")
 		token, err := validateJWT(tokenString)
 		if err != nil {
+			fmt.Println("Here")
 			permissionDenied(w)
 			return
 		}
 
 		if !token.Valid {
+			fmt.Println("Here1")
 			permissionDenied(w)
 			return
 		}
 
-		userID, err := getID(r)
+		//		userID, err := getID(r)
+		//if err != nil {
+		//		fmt.Println("Here3")
+		//		permissionDenied(w)
+		//		return
+		//}
+
+		//		account, err := s.GetAccountByID(userID)
+		err = s.GetQuery()
 		if err != nil {
+			fmt.Println("Here4")
 			permissionDenied(w)
 			return
 		}
 
-		account, err := s.GetAccountByID(userID)
-		if err != nil {
-			permissionDenied(w)
-			return
-		}
+		//	claims := token.Claims.(jwt.MapClaims)
 
-		claims := token.Claims.(jwt.MapClaims)
-
-		if account.Number != int(claims["accountNumber"].(float64)) {
-			permissionDenied(w)
-			return
-		}
+		//		if account.Number != int(claims["accountNumber"].(float64)) {
+		//	permissionDenied(w)
+		//		return
+		//}
 
 		handlerFunc(w, r)
 	}
