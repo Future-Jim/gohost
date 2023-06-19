@@ -23,7 +23,9 @@ jobs:
 
         
     - name: Build
-      go build -v ./gohost-mon
+
+      run: go build -v ./gohost-mon
+
 
     - name: Test
       run: go test -v ./...
