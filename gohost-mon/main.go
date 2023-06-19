@@ -9,7 +9,9 @@ func main() {
 	if err != nil {
 		return
 	}
-	store.Init()
+	if err := store.Init(); err != nil {
+		log.Fatal(err)
+	}
 	agent := NewMetricAgent(store)
 	agent.Run()
 }
