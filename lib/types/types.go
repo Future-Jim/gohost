@@ -29,6 +29,18 @@ type Metrics struct {
 	PMU PercentMemoryUsed
 }
 
+type QueryMetrics struct {
+	ID        int       `json:"id"`
+	AL1       float64   `json:"al_1"`
+	AL5       float64   `json:"al_5"`
+	AL15      float64   `json:"al_15"`
+	HUTD      uint64    `json:"hutd"`
+	HUTH      uint64    `json:"huth"`
+	HUTM      uint64    `json:"hutm"`
+	PMU       int       `json:"pmu"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 type CreateAccountRequest struct {
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`

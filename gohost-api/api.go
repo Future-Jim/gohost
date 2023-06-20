@@ -33,8 +33,7 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/login", makeHTTPHandleFunc(s.handleLogin))
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
 	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountByID), s.apistore))
-	router.HandleFunc("/query", withJWTAuth(makeHTTPHandleFunc(s.getQuery), s.apistore))
-
+	router.HandleFunc("/query/{id}", withJWTAuth(makeHTTPHandleFunc(s.getQuery), s.apistore))
 	http.ListenAndServe(s.listenAddr, router)
 
 }
@@ -80,11 +79,28 @@ func (s *APIServer) handleQuery(w http.ResponseWriter, r *http.Request) error {
 }
 
 func (s *APIServer) getQuery(w http.ResponseWriter, r *http.Request) error {
-	err := s.apistore.GetQuery()
-	if err != nil {
-		return err
+	if r.Method == "GET" {
+		id, err := getQueryID(r)
+		if err != nil {
+			return err
+		}
+
+		query, err := s.apistore.GetQuery(id)
+		if err != nil {
+			return err
+		}
+		return WriteJSON(w, http.StatusOK, query)
 	}
-	return WriteJSON(w, http.StatusOK, "okay")
+	return fmt.Errorf("method not allowed %s", r.Method)
+}
+
+func getQueryID(r *http.Request) (int, error) {
+	idStr := mux.Vars(r)["id"]
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		return id, fmt.Errorf("invalid id given %s", idStr)
+	}
+	return id, nil
 }
 
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
@@ -193,7 +209,6 @@ func createJWT(account *types.Account) (string, error) {
 	}
 	secret := os.Getenv("JWT_SECRET")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	print(token)
 	return token.SignedString([]byte(secret))
 
 }
@@ -205,44 +220,20 @@ func permissionDenied(w http.ResponseWriter) {
 func withJWTAuth(handlerFunc http.HandlerFunc, s userstore.UserStorage) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("calling JWT auth middleware")
-
 		tokenString := r.Header.Get("x-jwt-token")
 		token, err := validateJWT(tokenString)
 		if err != nil {
-			fmt.Println("Here")
 			permissionDenied(w)
 			return
 		}
 
 		if !token.Valid {
-			fmt.Println("Here1")
 			permissionDenied(w)
 			return
 		}
-
-		//		userID, err := getID(r)
-		//if err != nil {
-		//		fmt.Println("Here3")
-		//		permissionDenied(w)
-		//		return
-		//}
-
-		//		account, err := s.GetAccountByID(userID)
-		err = s.GetQuery()
-		if err != nil {
-			fmt.Println("Here4")
-			permissionDenied(w)
-			return
-		}
-
-		//	claims := token.Claims.(jwt.MapClaims)
-
-		//		if account.Number != int(claims["accountNumber"].(float64)) {
-		//	permissionDenied(w)
-		//		return
-		//}
 
 		handlerFunc(w, r)
+
 	}
 }
 

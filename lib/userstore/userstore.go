@@ -9,13 +9,16 @@ import (
 )
 
 type UserStorage interface {
+	//accounts
 	CreateAccount(*types.Account) error
 	DeleteAccount(int) error
 	UpdateAccount(*types.Account) error
 	GetAccounts() ([]*types.Account, error)
 	GetAccountByID(int) (*types.Account, error)
 	GetAccountByNumber(int) (*types.Account, error)
-	GetQuery() error
+	//metrics queries
+	GetQuery(int) (*types.QueryMetrics, error)
+	GetAllQuery() ([]*types.QueryMetrics, error)
 }
 
 type PostgresStore struct {
@@ -55,11 +58,6 @@ func (s *PostgresStore) createAccountTable() error {
     )`
 	_, err := s.db.Exec(query)
 	return err
-}
-
-func (s *PostgresStore) GetQuery() error {
-	fmt.Println("hi")
-	return nil
 }
 
 func (s *PostgresStore) CreateAccount(acc *types.Account) error {
@@ -113,6 +111,44 @@ func (s *PostgresStore) GetAccountByID(id int) (*types.Account, error) {
 	return nil, fmt.Errorf("account %d not found", id)
 }
 
+func (s *PostgresStore) GetAllQuery() ([]*types.QueryMetrics, error) {
+	query := `select * from metrics`
+	rows, err := s.db.Query(
+		query)
+	fmt.Printf("%s", err)
+	if err != nil {
+		return nil, err
+	}
+
+	metrics := []*types.QueryMetrics{}
+	for rows.Next() {
+		metric, err := scanIntoQueryMetric(rows)
+		if err != nil {
+			return nil, err
+		}
+		metrics = append(metrics, metric)
+	}
+
+	return metrics, nil
+
+}
+
+func (s *PostgresStore) GetQuery(id int) (*types.QueryMetrics, error) {
+	query := `select * from metrics where id=$1`
+	rows, err := s.db.Query(
+		query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return scanIntoQueryMetric(rows)
+	}
+
+	return nil, fmt.Errorf("metric %d not found", id)
+
+}
+
 func (s *PostgresStore) GetAccountByNumber(number int) (*types.Account, error) {
 	query := `select * from account where number=$1`
 	rows, err := s.db.Query(
@@ -143,6 +179,26 @@ func (s *PostgresStore) GetAccounts() ([]*types.Account, error) {
 	}
 
 	return accounts, nil
+}
+
+func scanIntoQueryMetric(rows *sql.Rows) (*types.QueryMetrics, error) {
+	metrics := new(types.QueryMetrics)
+	err := rows.Scan(
+		&metrics.ID,
+		&metrics.AL1,
+		&metrics.AL5,
+		&metrics.AL15,
+		&metrics.HUTD,
+		&metrics.HUTH,
+		&metrics.HUTM,
+		&metrics.PMU,
+		&metrics.CreatedAt)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return metrics, nil
 }
 
 func scanIntoAccount(rows *sql.Rows) (*types.Account, error) {
