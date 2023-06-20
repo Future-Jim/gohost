@@ -6,7 +6,7 @@ import (
 	"github.com/future-jim/gohost/lib/metricstore"
 )
 
-const measurementDelay = 1
+const measurementDelay = 60
 
 func main() {
 	store, err := metricstore.NewPostgresStore()
