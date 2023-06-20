@@ -13,7 +13,6 @@ type UserStorage interface {
 	//accounts
 	CreateAccount(*types.Account) error
 	DeleteAccount(int) error
-	UpdateAccount(*types.Account) error
 	GetAccounts() ([]*types.Account, error)
 	GetAccountByID(int) (*types.Account, error)
 	GetAccountByNumber(int) (*types.Account, error)
