@@ -7,6 +7,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type DateTimeQuery struct {
+	Start time.Time `json:"startDateTime"`
+	End   time.Time `json:"endDateTime"`
+}
+
 type HostUpTime struct {
 	Days    uint64
 	Hours   uint64

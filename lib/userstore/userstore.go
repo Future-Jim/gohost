@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// UserStorage acts as in interface on all functions necessary for an API user
 type UserStorage interface {
 	//accounts
 	CreateAccount(*types.Account) error
@@ -17,14 +18,17 @@ type UserStorage interface {
 	GetAccountByID(int) (*types.Account, error)
 	GetAccountByNumber(int) (*types.Account, error)
 	//metrics queries
-	GetQuery(int) (*types.QueryMetrics, error)
-	GetAllQuery() ([]*types.QueryMetrics, error)
+	GetMetric(int) (*types.QueryMetrics, error)
+	GetMetricsAll() ([]*types.QueryMetrics, error)
+	GetMetricsByDate(types.DateTimeQuery) ([]*types.QueryMetrics, error)
 }
 
+// PostgresStore is a type that contains the db for userstore
 type PostgresStore struct {
 	db *sql.DB
 }
 
+// NewPostgresStore creates the db connection and checks if it is live
 func NewPostgresStore() (*PostgresStore, error) {
 	connStr := "user=postgres dbname=postgres password=gohost sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
@@ -41,11 +45,13 @@ func NewPostgresStore() (*PostgresStore, error) {
 	}, nil
 }
 
+// Init initializes the user account table
 func (s *PostgresStore) Init() error {
 	return s.createAccountTable()
 
 }
 
+// Creates account table if it does not exist
 func (s *PostgresStore) createAccountTable() error {
 	query := `create table if not exists account (
            id serial primary key,
@@ -60,6 +66,7 @@ func (s *PostgresStore) createAccountTable() error {
 	return err
 }
 
+// Creates user account entry
 func (s *PostgresStore) CreateAccount(acc *types.Account) error {
 	query := `insert into account
         (first_name, last_name, number, encrypted_password, balance, created_at)
@@ -80,6 +87,7 @@ func (s *PostgresStore) CreateAccount(acc *types.Account) error {
 	return nil
 }
 
+// Hard deletes user account from account table
 func (s *PostgresStore) DeleteAccount(id int) error {
 	query := `delete from account where id=$1`
 	_, err := s.db.Query(
@@ -92,10 +100,7 @@ func (s *PostgresStore) DeleteAccount(id int) error {
 	return nil
 }
 
-func (s *PostgresStore) UpdateAccount(*types.Account) error {
-	return nil
-}
-
+// Gets a single user account by the user's id
 func (s *PostgresStore) GetAccountByID(id int) (*types.Account, error) {
 	query := `select * from account where id=$1`
 	rows, err := s.db.Query(
@@ -111,44 +116,7 @@ func (s *PostgresStore) GetAccountByID(id int) (*types.Account, error) {
 	return nil, fmt.Errorf("account %d not found", id)
 }
 
-func (s *PostgresStore) GetAllQuery() ([]*types.QueryMetrics, error) {
-	query := `select * from metrics`
-	rows, err := s.db.Query(
-		query)
-	fmt.Printf("%s", err)
-	if err != nil {
-		return nil, err
-	}
-
-	metrics := []*types.QueryMetrics{}
-	for rows.Next() {
-		metric, err := scanIntoQueryMetric(rows)
-		if err != nil {
-			return nil, err
-		}
-		metrics = append(metrics, metric)
-	}
-
-	return metrics, nil
-
-}
-
-func (s *PostgresStore) GetQuery(id int) (*types.QueryMetrics, error) {
-	query := `select * from metrics where id=$1`
-	rows, err := s.db.Query(
-		query, id)
-	if err != nil {
-		return nil, err
-	}
-
-	for rows.Next() {
-		return scanIntoQueryMetric(rows)
-	}
-
-	return nil, fmt.Errorf("metric %d not found", id)
-
-}
-
+// Gets a single user account by the account number
 func (s *PostgresStore) GetAccountByNumber(number int) (*types.Account, error) {
 	query := `select * from account where number=$1`
 	rows, err := s.db.Query(
@@ -164,6 +132,7 @@ func (s *PostgresStore) GetAccountByNumber(number int) (*types.Account, error) {
 	return nil, fmt.Errorf("account %d not found", number)
 }
 
+// Gets all accounts
 func (s *PostgresStore) GetAccounts() ([]*types.Account, error) {
 	rows, err := s.db.Query("select * from account")
 	if err != nil {
@@ -181,6 +150,67 @@ func (s *PostgresStore) GetAccounts() ([]*types.Account, error) {
 	return accounts, nil
 }
 
+// Gets all metrics from the metrics table
+func (s *PostgresStore) GetMetricsAll() ([]*types.QueryMetrics, error) {
+	query := `select * from metrics`
+	rows, err := s.db.Query(
+		query)
+
+	if err != nil {
+		return nil, err
+	}
+
+	metrics := []*types.QueryMetrics{}
+	for rows.Next() {
+		metric, err := scanIntoQueryMetric(rows)
+		if err != nil {
+			return nil, err
+		}
+		metrics = append(metrics, metric)
+	}
+
+	return metrics, nil
+
+}
+
+// Gets a single metric from the metrics table based on the metric id
+func (s *PostgresStore) GetMetric(id int) (*types.QueryMetrics, error) {
+	query := `select * from metrics where id=$1`
+	rows, err := s.db.Query(
+		query, id)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		return scanIntoQueryMetric(rows)
+	}
+
+	return nil, fmt.Errorf("metric %d not found", id)
+
+}
+
+// Gets metrics from the metrics table based on a time.Time range
+func (s *PostgresStore) GetMetricsByDate(dates types.DateTimeQuery) ([]*types.QueryMetrics, error) {
+	query := `SELECT * FROM metrics WHERE created_at BETWEEN $1 and $2`
+	rows, err := s.db.Query(
+		query, dates.Start, dates.End)
+	if err != nil {
+		return nil, err
+	}
+
+	metrics := []*types.QueryMetrics{}
+	for rows.Next() {
+		metric, err := scanIntoQueryMetric(rows)
+		if err != nil {
+			return nil, err
+		}
+		metrics = append(metrics, metric)
+	}
+	return metrics, nil
+}
+
+// helper function to cast a db row into a type.QueryMetrics type
 func scanIntoQueryMetric(rows *sql.Rows) (*types.QueryMetrics, error) {
 	metrics := new(types.QueryMetrics)
 	err := rows.Scan(
@@ -201,6 +231,7 @@ func scanIntoQueryMetric(rows *sql.Rows) (*types.QueryMetrics, error) {
 	return metrics, nil
 }
 
+// helper function to cast a db row into a type.Accounts type
 func scanIntoAccount(rows *sql.Rows) (*types.Account, error) {
 	account := new(types.Account)
 	err := rows.Scan(

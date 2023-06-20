@@ -30,10 +30,14 @@ func NewAPIServer(listenAddr string,
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
 	log.Println("JSON API server running on port:", s.listenAddr)
+	//accounts
 	router.HandleFunc("/login", makeHTTPHandleFunc(s.handleLogin))
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
 	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountByID), s.apistore))
-	router.HandleFunc("/query/{id}", withJWTAuth(makeHTTPHandleFunc(s.getQuery), s.apistore))
+	//metrics
+	router.HandleFunc("/metric/{id}", withJWTAuth(makeHTTPHandleFunc(s.getMetric), s.apistore))
+	router.HandleFunc("/metrics", withJWTAuth(makeHTTPHandleFunc(s.getMetricByDate), s.apistore))
+
 	http.ListenAndServe(s.listenAddr, router)
 
 }
@@ -70,22 +74,31 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
 	return WriteJSON(w, http.StatusOK, resp)
 }
 
-// handles all types of requests related to account (GET, POST, DELETE etc)
-func (s *APIServer) handleQuery(w http.ResponseWriter, r *http.Request) error {
+func (s *APIServer) getMetricByDate(w http.ResponseWriter, r *http.Request) error {
 	if r.Method == "GET" {
-		return s.getQuery(w, r)
+		req := new(types.DateTimeQuery)
+		if err := json.NewDecoder(r.Body).Decode(req); err != nil {
+			return err
+		}
+
+		ret, err := s.apistore.GetMetricsByDate(*req)
+
+		if err != nil {
+			return err
+		}
+		return WriteJSON(w, http.StatusOK, ret)
 	}
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
-func (s *APIServer) getQuery(w http.ResponseWriter, r *http.Request) error {
+func (s *APIServer) getMetric(w http.ResponseWriter, r *http.Request) error {
 	if r.Method == "GET" {
-		id, err := getQueryID(r)
+		id, err := getMetricID(r)
 		if err != nil {
 			return err
 		}
 
-		query, err := s.apistore.GetQuery(id)
+		query, err := s.apistore.GetMetric(id)
 		if err != nil {
 			return err
 		}
@@ -94,7 +107,7 @@ func (s *APIServer) getQuery(w http.ResponseWriter, r *http.Request) error {
 	return fmt.Errorf("method not allowed %s", r.Method)
 }
 
-func getQueryID(r *http.Request) (int, error) {
+func getMetricID(r *http.Request) (int, error) {
 	idStr := mux.Vars(r)["id"]
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
@@ -189,16 +202,6 @@ func getID(r *http.Request) (int, error) {
 
 func (s *APIServer) handleUpdateAccount(w http.ResponseWriter, r *http.Request) error {
 	return nil
-}
-
-func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {
-	transferReq := new(types.TransferRequest)
-	if err := json.NewDecoder(r.Body).Decode(transferReq); err != nil {
-		return err
-	}
-	defer r.Body.Close()
-
-	return WriteJSON(w, http.StatusOK, transferReq)
 }
 
 func createJWT(account *types.Account) (string, error) {
