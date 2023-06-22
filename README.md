@@ -12,6 +12,11 @@ There are three components required to run gohost
 3. postgresql db
    * Stores monitoring data and user credentials
 
+There is a docker-compose.yml file included that will deploy the required microservices as per the following diagram
+
+<img title="a title" alt="Alt text" src="./images/overview_v1.png">
+
+
 # Endpoints
 
 ## Metrics
