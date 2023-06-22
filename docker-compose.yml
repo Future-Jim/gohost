@@ -1,0 +1,38 @@
+services:
+  db:
+    container_name: gohost-db
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: gohost
+    networks:
+      - gohost
+
+  api:
+    depends_on:
+      - db
+    container_name: gohost-api
+    image: gohost-api
+    build:
+      context: .
+      dockerfile: Dockerfile-api
+    ports:
+      - 3000:3000
+    networks:
+      - gohost
+
+  mon:
+    depends_on:
+      - db
+    container_name: gohost-mon
+    image: gohost-mon
+    build:
+      context: .
+      dockerfile: Dockerfile-mon
+    networks:
+      - gohost
+      
+networks:
+  gohost:
+    name: gohost
+    driver: bridge
+
