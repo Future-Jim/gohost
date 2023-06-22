@@ -20,6 +20,7 @@ services:
     networks:
       - gohost
 
+  ## need to change this to grant access to the host for gohost-mon 
   mon:
     depends_on:
       - db
