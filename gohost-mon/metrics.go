@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 const bytesToMB = 1048576
 const secondsInHour = 3600
 const secondsInDay = 86400
+const measurementDelay = 30
 
 type MetricAgent struct {
 	name  string
@@ -35,9 +35,6 @@ func (a *MetricAgent) Run() {
 		metric.PMU = GetMemoryPercentUsed()
 		metric.HUT = GetHostUpTime()
 		a.store.AddEntry(&metric)
-		fmt.Println(metric)
-		result := a.store.GetEntry()
-		fmt.Println(result)
 	}
 }
 

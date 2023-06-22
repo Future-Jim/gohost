@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -29,7 +28,7 @@ func NewAPIServer(listenAddr string,
 
 func (s *APIServer) Run() {
 	router := mux.NewRouter()
-	log.Println("JSON API server running on port:", s.listenAddr)
+	//	log.Println("JSON API server running on port:", s.listenAddr)
 	//accounts
 	router.HandleFunc("/login", makeHTTPHandleFunc(s.handleLogin))
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
