@@ -1,0 +1,10 @@
+FROM golang:alpine as builder
+RUN mkdir /build 
+ADD . /build/
+WORKDIR /build
+RUN go build -C gohost-mon -o mon .
+
+FROM golang:alpine
+COPY --from=builder /build/gohost-mon/mon /app/
+
+ENTRYPOINT ["/app/mon"]
