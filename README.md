@@ -14,6 +14,9 @@ There are three components required to run gohost
 
 There is a docker-compose.yml file included that will deploy the required microservices as per the following diagram
 
+__*Warning*__  
+The container: gohost-mon is run in "privileged" mode which grants it access to the host machine.
+
 <img title="a title" alt="Alt text" src="./images/overview_v1.png">
 
 
