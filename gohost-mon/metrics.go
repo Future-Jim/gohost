@@ -1,14 +1,14 @@
 package main
 
 import (
-	"math"
-	"time"
-
+	"fmt"
 	"github.com/future-jim/gohost/lib/metricstore"
 	"github.com/future-jim/gohost/lib/types"
 	"github.com/shirou/gopsutil/mem"
 	"github.com/shirou/gopsutil/v3/host"
 	"github.com/shirou/gopsutil/v3/load"
+	"math"
+	"time"
 )
 
 const bytesToMB = 1048576
@@ -46,11 +46,13 @@ func GetMemoryPercentUsed() types.PercentMemoryUsed {
 }
 func GetHostUpTime() types.HostUpTime {
 	h, _ := host.Info()
-	days, _ := divMod(h.Uptime, secondsInDay)
-	hours, minutes := divMod(h.Uptime, secondsInHour)
+	fmt.Println(h)
+	// days and hours returned in seconds
+	days, hours := divMod(h.Uptime, secondsInDay)
+	_, minutes := divMod(h.Uptime, secondsInHour)
 	return types.HostUpTime{
 		Days:    days,
-		Hours:   hours,
+		Hours:   hours / 3600,
 		Minutes: minutes / 60,
 	}
 }
